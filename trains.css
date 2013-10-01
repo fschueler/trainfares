@@ -1,0 +1,92 @@
+.subunit.SCT { fill: #F0F0F0; }
+.subunit.WLS { fill: #BDBDBD; }
+.subunit.NIR { display: none; }
+.subunit.ENG { fill: #636363; }
+.subunit.IRL { display: none; }
+
+.subunit-boundary {
+  fill: none;
+  stroke: #777;
+  stroke-dasharray: 2,2;
+  stroke-linejoin: round;
+}
+
+.subunit-boundary.IRL {
+  stroke: #aaa;
+}
+
+.subunit-boundary.NIR {
+  stroke: #aaa;
+}
+
+.place {
+  fill: #000;
+}
+.place-label {
+  fill: #333;
+}
+
+.place-label-bg {
+  fill: white;
+  opacity: 0.7;
+}
+
+.d3-tip {
+  line-height: 1;
+  font-weight: bold;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 2px;
+}
+
+.route {
+    fill: none;
+    stroke: blue;
+    stroke-width: 1px;
+    stroke-linejoin: round;
+}
+
+text {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+html, body {
+  font: 10px sans-serif;
+  width: 100%;
+  height: 100%;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.bar {
+  fill: orange;
+}
+
+.bar:hover {
+  fill: orangered ;
+}
+
+.x.axis path {
+  display: none;
+}
+
+
+iframe {
+  height: 100%;
+  width: 45%;
+  border: none;
+}
+
+
+.x axis line,.x axis path {
+   color: white;
+   stroke: none;
+}

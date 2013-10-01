@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+  <link rel="stylesheet" type="text/css" href="trains.css">
+</head>
+<body>
+  <h1>Comparison of increase in fares since 1995</h1>
+  <h2>Single tickets</h2>
+  <p>Here is a text that tells the reader something about the grafics.</p>
+  <div id="checkBoxes">
+  <label><input class="filterButton" id="dist" type="checkbox"> Sort by distance</label>
+  <label><input class="filterButton" id="inf" type="checkbox"> Correct for inflation</label>
+  </div>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.min.js"></script>
+
+<script>
+
+var margin = {top: 40, right: 20, bottom: 100, left: 40},
+    width = 560 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var formatPercent = d3.format(".0%");
+
+var x = d3.scale.ordinal()
+    .rangeRoundBands([0, width], .1);
+
+var y = d3.scale.linear()
+    .range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+    .tickFormat(formatPercent)
+    .ticks(5);
+
+var inflation = 0.66
+
+var color = d3.scale.ordinal()
+    .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
+
+var tip = d3.tip()
+  .attr('class', 'd3-tip')
+  .offset([-10, 0])
+  .html(function(d) {
+    return d.y1 != inflation ? "<strong>Increase:</strong> <span style='color:red'>" + Math.round(100 * d.y1) + "%" + "</span>" : 
+                                "<strong>Inflation</strong>";
+  })
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+svg.call(tip);
+
+d3.tsv("data.tsv", type, function(error, data) {
+  color.domain(d3.keys(data[0]).filter(function(key) { return (key !== "city" && key !== "distance"); }));
+  x.domain(data.map(function(d) { return d.city; }));
+  y.domain([0, d3.max(data, function(d) { return d.single; })]);
+  data.forEach(function(d) {
+    var y0 = 0;
+    d.parts = color.domain().map(function(name) { return {name: name, city: d.city, y0: y0, y1: (name == "single" && +d[name] > inflation) ? y0 += +d[name] - inflation : y0 += +d[name]}; });
+    d.total = d.parts[d.parts.length - 1].y1;
+  });
+
+  d3.selectAll("input").property("checked", false);
+
+  d3.select("input").property("checked", false).each(change);
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+      .selectAll("text")
+          .attr("dy", ".15em")
+          .attr("dx", "-.8em")
+          .style("text-anchor", "start")
+          .attr("x", 20)
+          .attr("y", 0)
+          .attr("transform", "rotate(90)");
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+
+  var city = svg.selectAll(".city")
+      .data(data)
+    .enter().append("g")
+      .attr("class", "g")
+
+  city.selectAll("rect")
+      .data(function(d) { return d.parts; })
+    .enter().append("rect")
+      .attr("width", x.rangeBand())
+      .attr("y", function(d) { return height; })
+      .attr("x", function(d) { return x(d.city); })
+      .attr("height", function(d) { return height; })
+      .style("fill", function(d) { return color(d.name); })
+      .style("fill-opacity", function(d) { return d.name == "inflation" ? 0.5 : 1;});
+
+  svg.selectAll("rect")
+      .on('mouseover', tip.show)
+      .on('mouseout', tip.hide)
+
+    redraw();
+
+  function redraw() {
+    city.selectAll("rect")
+    .data(function(d) { return d.parts; })
+    .transition()
+    .duration(1000)
+    .attr("y", function(d) { return y(d.y1); })
+    .attr("height", function(d) { return y(d.y0) - y(d.y1); });
+}
+
+function subtractInflation() {
+  if(this.checked) {
+
+    city.select(".inflationLine")
+      .attr("y1", y(inflation))
+      .attr("y2", y(inflation))
+
+    city.selectAll("rect")
+    .data(function(d) { return d.parts; })
+    .transition()
+    .duration(1000)
+    .attr("y", function(d) { 
+      if ((d.y1 - inflation) > 0) {
+      return y(d.y1 - inflation);
+    }
+    return y(d.y0); })
+    .attr("height", function(d) { 
+      if (d.name == "inflation") {
+      return 0;
+    }
+    if(d.y1 < inflation) {
+      return 49;
+    }
+    return y(d.y0) - y(d.y1); });
+  } else {
+    redraw()
+  }
+}
+//y(d.y0) - y(d.y1)
+    d3.select("#dist").on("change", change);
+    d3.select("#inf").on("change", subtractInflation);
+
+
+  function change() {
+    // Copy-on-write since tweens are evaluated after a delay.
+    var x0 = x.domain(data.sort(this.checked
+        ? function(a, b) { return b.distance - a.distance; }
+        : function(a, b) { return b.total - a.total; })
+        .map(function(d) { return d.city; }))
+        .copy();
+
+    var transition = svg.transition().duration(750),
+        delay = function(d, i) { return i * 50; };
+
+    transition.selectAll("rect")
+        .attr("x", function(d) { return x0(d.city); });
+
+
+    transition.select(".x.axis")
+        .call(xAxis)
+      .selectAll("g")
+        .delay(delay)
+      .selectAll("text")
+        .attr("dy", ".15em")
+        .attr("dx", "-.8em")
+        .style("text-anchor", "start")
+        .attr("x", 20)
+        .attr("y", 0)
+        .attr("transform", "rotate(90)");
+  }
+
+    svg.append("line")
+      .attr("y1", y(0))
+      .attr("y2", y(0))
+      .attr("x1", 0)
+      .attr("x2", width)
+      .style("opacity", "0.3")
+      .style("stroke", "#000");
+
+});
+
+function type(d) {
+  d.single = +d.single;
+  return d;
+}
+
+</script>
+
